@@ -44,7 +44,53 @@ func main() {
         return n.Reply(msg, body)
     })
 
-    if err := n.Run(); err != nil {
-        log.Fatal(err)
-    }
+	// Challenge for reading broadcast messages and returning them
+	// Part 1: Read RPC broadcast message and acknowledge it
+	var values []any
+	n.Handle("broadcast", func(msg maelstrom.Message) error {
+		var body map[string]any
+		if err := json.Unmarshal(msg.Body, &body); err != nil {
+			return err
+		}
+
+		values = append(values, body["message"])
+		reply := map[string]any {
+			"type": "broadcast_ok",
+			"in_reply_to": body["msg_id"],
+		}
+		return n.Reply(msg, reply)
+	})
+
+	// Part two: Return all the values read from the RPC broadcast
+	n.Handle("read", func(msg maelstrom.Message) error {
+		var body map[string]any
+		if err := json.Unmarshal(msg.Body, &body); err != nil {
+			return err
+		}
+
+		body["type"] = "read_ok"
+		body["messages"] = values
+		return n.Reply(msg, body)
+	})
+
+	// Part three: Topology
+	n.Handle("topology", func(msg maelstrom.Message) error {
+		var body map[string]any
+		if err := json.Unmarshal(msg.Body, &body); err != nil {
+			log.Println("unmarshal error:", err)
+			return err
+		}
+
+		body["type"] = "topology_ok"
+		reply := map[string]any {
+			"type": "topology_ok",
+			"in_reply_to": body["msg_id"],
+		}
+
+		return n.Reply(msg, reply)
+	})
+
+	if err := n.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
