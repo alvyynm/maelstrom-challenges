@@ -8,6 +8,8 @@ import (
 	maelstrom "github.com/jepsen-io/maelstrom/demo/go"
 )
 
+var neighbors []string
+
 func main() {
 	n := maelstrom.NewNode()
 
@@ -27,18 +29,18 @@ func main() {
 
 	// CHALLENGE TWO: Unique IDs
 	n.Handle("generate", func(msg maelstrom.Message) error {
-        var body map[string]any
-        if err := json.Unmarshal(msg.Body, &body); err != nil {
-            return err
-        }
+		var body map[string]any
+		if err := json.Unmarshal(msg.Body, &body); err != nil {
+			return err
+		}
 
-        // update the message type to return back
-        body["type"] = "generate_ok"
-        body["id"] = rand.Intn(1000)
+		// update the message type to return back
+		body["type"] = "generate_ok"
+		body["id"] = rand.Intn(1000)
 
-        // send back a response
-        return n.Reply(msg, body)
-    })
+		// send back a response
+		return n.Reply(msg, body)
+	})
 
 	// Challenge for reading broadcast messages and returning them
 	// Part 1: Read RPC broadcast message and acknowledge it
@@ -49,9 +51,20 @@ func main() {
 			return err
 		}
 
+		val := body["message"]
+
 		values = append(values, body["message"])
-		reply := map[string]any {
-			"type": "broadcast_ok",
+
+		for _, neighbor := range neighbors {
+			msg := map[string]any{
+				"type":    "broadcast",
+				"message": val,
+			}
+			n.Send(neighbor, msg)
+		}
+
+		reply := map[string]any{
+			"type":        "broadcast_ok",
 			"in_reply_to": body["msg_id"],
 		}
 		return n.Reply(msg, reply)
@@ -71,16 +84,24 @@ func main() {
 
 	// Part three: Topology
 	n.Handle("topology", func(msg maelstrom.Message) error {
-		var body map[string]any
+		var body struct {
+			Type     string              `json:"type"`
+			Topology map[string][]string `json:"topology"`
+			MsgID    int                 `json:"msg_id"`
+		}
+		// var body map[string]any
 		if err := json.Unmarshal(msg.Body, &body); err != nil {
 			log.Println("unmarshal error:", err)
 			return err
 		}
 
-		body["type"] = "topology_ok"
-		reply := map[string]any {
-			"type": "topology_ok",
-			"in_reply_to": body["msg_id"],
+		neighbors = body.Topology[n.ID()]
+		log.Printf("My neighbors are: %v", neighbors)
+
+		// body["type"] = "topology_ok"
+		reply := map[string]any{
+			"type":        "topology_ok",
+			"in_reply_to": body.MsgID,
 		}
 
 		return n.Reply(msg, reply)
