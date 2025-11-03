@@ -9,6 +9,7 @@ import (
 )
 
 var neighbors []string
+var seen = make(map[any]bool)
 
 func main() {
 	n := maelstrom.NewNode()
@@ -52,6 +53,12 @@ func main() {
 		}
 
 		val := body["message"]
+
+		if seen[val] {
+			return nil
+		}
+
+		seen[val] = true
 
 		values = append(values, body["message"])
 
