@@ -25,10 +25,6 @@ func main() {
 		return n.Reply(msg, body)
 	})
 
-	if err := n.Run(); err != nil {
-		log.Fatal(err)
-	}
-
 	// CHALLENGE TWO: Unique IDs
 	n.Handle("generate", func(msg maelstrom.Message) error {
         var body map[string]any
