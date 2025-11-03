@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"math/rand"
 
 	maelstrom "github.com/jepsen-io/maelstrom/demo/go"
 )
@@ -27,4 +28,23 @@ func main() {
 	if err := n.Run(); err != nil {
 		log.Fatal(err)
 	}
+
+	// CHALLENGE TWO: Unique IDs
+	n.Handle("generate", func(msg maelstrom.Message) error {
+        var body map[string]any
+        if err := json.Unmarshal(msg.Body, &body); err != nil {
+            return err
+        }
+
+        // update the message type to return back
+        body["type"] = "generate_ok"
+        body["id"] = rand.Intn(1000)
+
+        // send back a response
+        return n.Reply(msg, body)
+    })
+
+    if err := n.Run(); err != nil {
+        log.Fatal(err)
+    }
 }
