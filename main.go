@@ -107,6 +107,10 @@ func main() {
 		return n.Reply(msg, reply)
 	})
 
+	n.Handle("broadcast_ok", func(msg maelstrom.Message) error  {
+		return nil
+	})
+
 	if err := n.Run(); err != nil {
 		log.Fatal(err)
 	}
